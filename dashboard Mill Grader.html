@@ -1,53 +1,344 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard Mill Grader</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Progress Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .progress-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .progress-header {
+            display: grid;
+            grid-template-columns: 150px 150px repeat(4, 1fr) 100px;
+            gap: 10px;
+            font-weight: bold;
+            padding: 10px;
+            background-color: #f0f2f5;
+            border-radius: 5px;
+        }
+        
+        .progress-row {
+            display: grid;
+            grid-template-columns: 150px 150px repeat(4, 1fr) 100px;
+            gap: 10px;
+            padding: 15px 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        
+        .progress-row:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-bar-container {
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        
+        .progress-text {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .company-tag {
+            background-color: #2c3e50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status-done {
+            background-color: #2ecc71;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+            color: #7f8c8d;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .chart-container {
+            margin-top: 40px;
+            height: 300px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Dashboard Mill Grader</h1>
-  <canvas id="progressChart" width="600" height="300"></canvas>
+    <div class="container">
+        <h1>Project Progress Dashboard</h1>
+        
+        <div class="progress-container">
+            <div class="progress-header">
+                <div>Task 1</div>
+                <div>Task 2</div>
+                <div>Administrasi PC & Kamera</div>
+                <div>Administrasi Tools Pendukung</div>
+                <div>Pabrikasi Mill Grader</div>
+                <div>Instalasi Electrical & Server</div>
+                <div>Company</div>
+            </div>
+            
+            <div id="progress-data">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading data from Google Sheets...
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="progressChart"></canvas>
+        </div>
+    </div>
 
-  <script>
-    const sheetId = "1U2JAfj6INkQ-qxBXFZT5zaYZ_gTAap1NIvYRtzryk4Q";
-    const sheetName = "Form Responses 1";
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
-
-    fetch(url)
-      .then(res => res.text())
-      .then(rep => {
-        const json = JSON.parse(rep.substr(47).slice(0, -2));
-
-        let labels = [];
-        let pabrikasi = [];
-        let instalasiM = [];
-        let instalasiEl = [];
-
-        json.table.rows.forEach(row => {
-          labels.push(row.c[7]?.v); // Kolom PT
-          pabrikasi.push(parseFloat(row.c[4]?.v) || 0);
-          instalasiM.push(parseFloat(row.c[5]?.v) || 0);
-          instalasiEl.push(parseFloat(row.c[6]?.v) || 0);
-        });
-
-        new Chart(document.getElementById("progressChart"), {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [
-              { label: 'Progres Pabrikasi (%)', data: pabrikasi, backgroundColor: 'rgba(255, 99, 132, 0.5)' },
-              { label: 'Progres Instalasi Mekanik (%)', data: instalasiM, backgroundColor: 'rgba(54, 162, 235, 0.5)' },
-              { label: 'Progres Instalasi Elektrik (%)', data: instalasiEl, backgroundColor: 'rgba(75, 192, 192, 0.5)' }
-            ]
-          },
-          options: {
-            responsive: true,
-            scales: { y: { beginAtZero: true, max: 100 } }
-          }
-        });
-      })
-      .catch(err => console.error("Error ambil data:", err));
-  </script>
+    <script>
+        // Google Sheets URL (published as CSV)
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQbFz5v5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5J5/pub?output=csv';
+        
+        // Function to fetch and process data
+        async function fetchData() {
+            try {
+                const response = await fetch(sheetUrl);
+                const csvData = await response.text();
+                
+                Papa.parse(csvData, {
+                    header: true,
+                    complete: function(results) {
+                        const data = results.data;
+                        displayData(data);
+                        createChart(data);
+                    },
+                    error: function(error) {
+                        document.getElementById('progress-data').innerHTML = 
+                            `<div class="loading" style="color: #e74c3c;">Error loading data: ${error.message}</div>`;
+                    }
+                });
+            } catch (error) {
+                document.getElementById('progress-data').innerHTML = 
+                    `<div class="loading" style="color: #e74c3c;">Error fetching data: ${error.message}</div>`;
+            }
+        }
+        
+        // Function to display the data in the progress table
+        function displayData(data) {
+            const container = document.getElementById('progress-data');
+            container.innerHTML = '';
+            
+            data.forEach(row => {
+                const progressRow = document.createElement('div');
+                progressRow.className = 'progress-row';
+                
+                // Create cells for each column
+                const task1Cell = document.createElement('div');
+                task1Cell.textContent = row['Task 1'] || '';
+                if (row['Task 1'] === 'Done') {
+                    task1Cell.className = 'status-done';
+                }
+                
+                const task2Cell = document.createElement('div');
+                task2Cell.textContent = row['Task 2'] || '';
+                if (row['Task 2'] === 'Done') {
+                    task2Cell.className = 'status-done';
+                }
+                
+                const progressCells = [
+                    'Administrasi PC & Kamera',
+                    'Administrasi Tools Pendukung',
+                    'Pabrikasi Mill Grader',
+                    'Instalasi Electrical & Server'
+                ].map(header => {
+                    const cell = document.createElement('div');
+                    const progressContainer = document.createElement('div');
+                    progressContainer.className = 'progress-bar-container';
+                    
+                    const progressBar = document.createElement('div');
+                    progressBar.className = 'progress-bar';
+                    
+                    const progressText = document.createElement('div');
+                    progressText.className = 'progress-text';
+                    
+                    const progressValue = parseInt(row[header]) || 0;
+                    progressBar.style.width = `${progressValue}%`;
+                    progressText.textContent = `${progressValue}%`;
+                    
+                    progressContainer.appendChild(progressBar);
+                    progressContainer.appendChild(progressText);
+                    cell.appendChild(progressContainer);
+                    
+                    return cell;
+                });
+                
+                const companyCell = document.createElement('div');
+                companyCell.className = 'company-tag';
+                companyCell.textContent = row['Company'] || '';
+                
+                // Append all cells to the row
+                progressRow.appendChild(task1Cell);
+                progressRow.appendChild(task2Cell);
+                progressCells.forEach(cell => progressRow.appendChild(cell));
+                progressRow.appendChild(companyCell);
+                
+                container.appendChild(progressRow);
+            });
+        }
+        
+        // Function to create the chart
+        function createChart(data) {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            
+            const companies = data.map(row => row['Company']);
+            const datasets = [
+                {
+                    label: 'Administrasi PC & Kamera',
+                    data: data.map(row => parseInt(row['Administrasi PC & Kamera']) || 0),
+                    backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                    borderColor: 'rgba(52, 152, 219, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Administrasi Tools Pendukung',
+                    data: data.map(row => parseInt(row['Administrasi Tools Pendukung']) || 0),
+                    backgroundColor: 'rgba(155, 89, 182, 0.7)',
+                    borderColor: 'rgba(155, 89, 182, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Pabrikasi Mill Grader',
+                    data: data.map(row => parseInt(row['Pabrikasi Mill Grader']) || 0),
+                    backgroundColor: 'rgba(241, 196, 15, 0.7)',
+                    borderColor: 'rgba(241, 196, 15, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Instalasi Electrical & Server',
+                    data: data.map(row => parseInt(row['Instalasi Electrical & Server']) || 0),
+                    backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                    borderColor: 'rgba(46, 204, 113, 1)',
+                    borderWidth: 1
+                }
+            ];
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: companies,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Progress (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Company'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Project Progress by Company and Task'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize the dashboard when the page loads
+        document.addEventListener('DOMContentLoaded', fetchData);
+    </script>
 </body>
 </html>
