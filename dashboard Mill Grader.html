@@ -6,13 +6,13 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>Dashboard Progres Pabrikasi & Instalasi</h1>
+  <h1>Dashboard Mill Grader</h1>
   <canvas id="progressChart" width="600" height="300"></canvas>
 
   <script>
     const sheetId = "1U2JAfj6INkQ-qxBXFZT5zaYZ_gTAap1NIvYRtzryk4Q";
     const sheetName = "Form Responses 1";
-    const url = `https://docs.google.com/spreadsheets/d/1U2JAfj6INkQ-qxBXFZT5zaYZ_gTAap1NIvYRtzryk4Q/edit?usp=sharing`;
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
 
     fetch(url)
       .then(res => res.text())
@@ -25,10 +25,10 @@
         let instalasiEl = [];
 
         json.table.rows.forEach(row => {
-          labels.push(row.c[7]?.v); // Kolom PT (kolom ke-8)
-          pabrikasi.push(parseFloat(row.c[4]?.v) || 0); // Kolom ke-5
-          instalasiM.push(parseFloat(row.c[5]?.v) || 0); // Kolom ke-6
-          instalasiEl.push(parseFloat(row.c[6]?.v) || 0); // Kolom ke-7
+          labels.push(row.c[7]?.v); // Kolom PT
+          pabrikasi.push(parseFloat(row.c[4]?.v) || 0);
+          instalasiM.push(parseFloat(row.c[5]?.v) || 0);
+          instalasiEl.push(parseFloat(row.c[6]?.v) || 0);
         });
 
         new Chart(document.getElementById("progressChart"), {
@@ -46,7 +46,8 @@
             scales: { y: { beginAtZero: true, max: 100 } }
           }
         });
-      });
+      })
+      .catch(err => console.error("Error ambil data:", err));
   </script>
 </body>
 </html>
